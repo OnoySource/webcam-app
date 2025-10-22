@@ -8,7 +8,8 @@ use App\Models\ImageManual;
 use App\Models\ImageAuto;
 
 class ImageController extends Controller
-{public function saveImage(Request $request)
+{
+  public function saveImage(Request $request)
 {
     $type = $request->input("type");
 
@@ -53,5 +54,19 @@ class ImageController extends Controller
     }
 
     return response()->json(["success" => true, "filename" => $filename]);
-}
+    }
+    
+   public function show()  
+    {  
+        $imageAuto = ImageAuto::latest()->get();  
+        $imageManual = ImageManual::latest()->get();  
+        $countAuto = $imageAuto->count();  
+        $countManual = $imageManual->count();  
+        return view("admin.show", [  
+            "imagesAuto" => $imageAuto,  
+            "imagesManual" => $imageManual,  
+            "countAuto" => $countAuto,  
+            "countManual" => $countManual,  
+        ]);  
+    }  
 }    
