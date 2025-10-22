@@ -8,41 +8,50 @@ use App\Models\ImageManual;
 use App\Models\ImageAuto;
 
 class ImageController extends Controller
+{public function saveImage(Request $request)
 {
-    public function saveImage(Request $request)
-    {
-        $type = $request->input("type");
+    $type = $request->input("type");
 
-        if ($type == "auto" && $request->hasFile("image")) {
-            $image = $request->file("image");
-            $path = $image->store("images_auto", "public");
-            ImageAuto::create(["path" => $path]);
-        } elseif ($type == "manual" && $request->has("image")) {
-            $data = $request->input("image");
-            list($type, $data) = explode(";", $data);
-            list(, $data) = explode(",", $data);
-            $data = base64_decode($data);
-            $path = "images_manual/" . uniqid() . ".png";
-            Storage::disk("public")->put($path, $data);
-            ImageManual::create(["image" => $path]);
-        } else {
-            return response()->json(["error" => "Invalid image or type"], 400);
-        }
+    if ($type == "auto" && $request->hasFile("image")) {
+        // Hitung jumlah auto sebelumnya
+        $count = ImageAuto::count() + 1;
 
-        return response()->json(["success" => "Kesalahan dalam pengambilan gambar!"]);
+        // bikin nama file
+        $random = bin2hex(random_bytes(4)); // random 8 char
+        $filename = "Ke-{$count}_{$random}.png";
+
+        // save ke folder
+        $image = $request->file("image");
+        $path = $image->storeAs("images_auto", $filename, "public");
+
+        // save ke database
+        ImageAuto::create(["path" => $path]);
+
+    } elseif ($type == "manual" && $request->has("image")) {
+        // Hitung jumlah manual sebelumnya
+        $count = ImageManual::count() + 1;
+
+        // bikin nama file
+        $random = bin2hex(random_bytes(4));
+        $filename = "Ke-{$count}_{$random}.png";
+
+        // decode base64
+        $data = $request->input("image");
+        list($type, $data) = explode(";", $data);
+        list(, $data) = explode(",", $data);
+        $data = base64_decode($data);
+
+        // save ke folder
+        $path = "images_manual/" . $filename;
+        Storage::disk("public")->put($path, $data);
+
+        // save ke database
+        ImageManual::create(["image" => $path]);
+
+    } else {
+        return response()->json(["error" => "Invalid image or type"], 400);
     }
 
-    public function show()
-    {
-        $imageAuto = ImageAuto::latest()->get();
-        $imageManual = ImageManual::latest()->get();
-        $countAuto = $imageAuto->count();
-        $countManual = $imageManual->count();
-        return view("admin.show", [
-            "imagesAuto" => $imageAuto,
-            "imagesManual" => $imageManual,
-            "countAuto" => $countAuto,
-            "countManual" => $countManual,
-        ]);
-    }
+    return response()->json(["success" => true, "filename" => $filename]);
 }
+}    
